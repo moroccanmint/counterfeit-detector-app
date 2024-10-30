@@ -1,6 +1,8 @@
 import 'package:cashguard/constants.dart';
-import 'package:cashguard/onboarding_controller.dart';
+import 'package:cashguard/controllers/onboarding_controller.dart';
+import 'package:cashguard/screens/homescreen.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:get/get.dart';
 
@@ -18,9 +20,11 @@ class OnboardingScreen extends StatelessWidget {
           PageView(
             controller: controller.pageController,
             onPageChanged: controller.updatePageIndicator,
+            physics: BouncingScrollPhysics(),
             children: [
               OnboardingPage(
                 size: size,
+                image: engcImage,
                 title: onboardingTitle1,
                 subtitle: onboardingSubtitle1,
               ),
@@ -46,7 +50,9 @@ class OnboardingScreen extends StatelessWidget {
           ),
 
           /// Skip Button
-          const OnboardingSkip(),
+          Obx(() => controller.currentPageIndex.value == 3
+              ? Container()
+              : OnboardingSkip()),
 
           /// Dot Navigation SmoothingIndicator
           const OnboardingDotNavigation(),
@@ -69,15 +75,35 @@ class OnboardingNextButton extends StatelessWidget {
     return Positioned(
         right: 30,
         bottom: kBottomNavigationBarHeight,
-        child: ElevatedButton(
-          onPressed: () => OnboardingController.instance.nextPage(),
-          style: ElevatedButton.styleFrom(
-            shape: const CircleBorder(),
-            backgroundColor: primaryColor,
-            iconColor: Colors.white,
-            minimumSize: const Size(40, 40),
+        child: Obx(
+          () => ElevatedButton(
+            onPressed: () {
+              if (OnboardingController.instance.currentPageIndex.value == 3) {
+                Get.offAll(() => Homescreen());
+              } else {
+                OnboardingController.instance.nextPage();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              shape: OnboardingController.instance.currentPageIndex.value == 3
+                  ? RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30))
+                  : CircleBorder(),
+              backgroundColor: primaryColor,
+              iconColor: pureWhite,
+              minimumSize:
+                  OnboardingController.instance.currentPageIndex.value == 3
+                      ? Size(120, 56)
+                      : Size(56, 56),
+            ),
+            child: OnboardingController.instance.currentPageIndex.value == 3
+                ? Text("LET'S GO!",
+                    style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: pureWhite))
+                : Icon(Icons.keyboard_arrow_right_rounded),
           ),
-          child: const Icon(Icons.keyboard_arrow_right_rounded),
         ));
   }
 }
@@ -115,7 +141,10 @@ class OnboardingSkip extends StatelessWidget {
         right: 30,
         child: TextButton(
           onPressed: () => OnboardingController.instance.skipPage(),
-          child: const Text('Skip'),
+          child: Text(
+            'Skip',
+            style: GoogleFonts.poppins(fontSize: 16),
+          ),
         ));
   }
 }
@@ -124,33 +153,36 @@ class OnboardingPage extends StatelessWidget {
   const OnboardingPage({
     super.key,
     required this.size,
+    required this.image,
     required this.title,
     required this.subtitle,
   });
 
   final Size size;
-  final String title, subtitle;
+  final String image, title, subtitle;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(50),
       child: Column(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(
-            height: 250,
-          ),
           Text(
             title,
-            style: Theme.of(context).textTheme.headlineLarge,
+            style: GoogleFonts.poppins(
+                fontSize: 28, fontWeight: FontWeight.bold, height: 1.1),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: GoogleFonts.poppins(fontSize: 16),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 30),
+          Image(image: AssetImage(image))
         ],
       ),
     );
@@ -174,17 +206,19 @@ class GuidePage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(40),
       child: Column(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(height: 140),
           Text(
             title,
-            style: Theme.of(context).textTheme.headlineLarge,
+            style:
+                GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: GoogleFonts.poppins(fontSize: 16),
             textAlign: TextAlign.center,
           ),
           Image(
