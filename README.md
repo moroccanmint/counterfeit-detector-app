@@ -3,7 +3,7 @@
 </div>
 
 <div align="center">
-  <img src="tps://github.com/user-attachments/assets/d205db7a-feb0-43bb-9b5d-370c72a7054d" alt="Application Screenshot" width="1000"/>
+  <img src="https://github.com/user-attachments/assets/f760d9e8-aa5c-40c9-b934-14a0ee476147" alt="Application Screenshot" width="800"/>
 </div>
 
 KAuth is a mobile application designed to detect counterfeit banknotes using a CNN model called Xception. Our solution provides real-time authentication of paper currency, helping users verify the authenticity of their banknotes instantly and accurately.
@@ -21,7 +21,7 @@ Counterfeit Detection through Convolutional Neural Network
 🎯 Conceptual Framework
 This is the overview of the process of our counterfeit detection application.
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/082e6e52-956c-48d2-865e-2868a454a953" alt="Conceptual Framework" width="800"/>
+  <img src="https://github.com/user-attachments/assets/082e6e52-956c-48d2-865e-2868a454a953" alt="Conceptual Framework" width="400"/>
 </div>
 
 Image Acquisition: Captures high-quality images of banknotes using the device's camera
