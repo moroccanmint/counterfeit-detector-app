@@ -1,5 +1,7 @@
 💵 KAuth
-![KAuth_Logo](https://github.com/user-attachments/assets/f8e39276-2f12-4acd-9c88-4918d41f4449)
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/f8e39276-2f12-4acd-9c88-4918d41f4449" alt="Banknote Authenticator Logo" width="200"/>
+</div>
 
 📱 Application Screenshots
 ![KAuth_Photo](https://github.com/user-attachments/assets/d205db7a-feb0-43bb-9b5d-370c72a7054d)
