@@ -1,5 +1,4 @@
-# KAuth (Counterfeit Detection Application for Philippine Peso Banknote
-using Image Processing through Convolutional Neural Network)
+# KAuth (Counterfeit Detection Application for Philippine Peso Banknote using Image Processing through Convolutional Neural Network)
 
 As technology advances, methods of banknote counterfeiting also evolve, posing a
 significant threat to economic stability. The Bangko Sentral ng Pilipinas reported the
