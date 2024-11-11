@@ -1,11 +1,9 @@
 💵 KAuth
-<div align="center">
-  ![KAuth_Logo](https://github.com/user-attachments/assets/f8e39276-2f12-4acd-9c88-4918d41f4449)
-</div>
+![KAuth_Logo](https://github.com/user-attachments/assets/f8e39276-2f12-4acd-9c88-4918d41f4449)
+
 📱 Application Screenshots
-<div align="center">
-  ![KAuth_Photo](https://github.com/user-attachments/assets/d205db7a-feb0-43bb-9b5d-370c72a7054d)
-</div>
+![KAuth_Photo](https://github.com/user-attachments/assets/d205db7a-feb0-43bb-9b5d-370c72a7054d)
+
 Banknote Authenticator is a cutting-edge mobile application designed to detect counterfeit banknotes using advanced computer vision and machine learning technologies. Our solution provides real-time authentication of paper currency, helping users verify the authenticity of their banknotes instantly and accurately.
 ✨ Key Features
 🔍 Edge Detection
@@ -18,12 +16,9 @@ Real-time frame processing
 
 Counterfeit Detection through Convolutional Neural Network
 
-
 🎯 Conceptual Framework
 This is the overview of the process of our counterfeit detection application.
-<div align="center">
-  ![KAuth_Conceptual](https://github.com/user-attachments/assets/082e6e52-956c-48d2-865e-2868a454a953)
-</div>
+![KAuth_Conceptual](https://github.com/user-attachments/assets/082e6e52-956c-48d2-865e-2868a454a953)
 
 Image Acquisition: Captures high-quality images of banknotes using the device's camera
 Edge Detection: Implements Xception CNN to isolate and analyze the banknote.
