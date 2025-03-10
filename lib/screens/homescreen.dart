@@ -271,32 +271,158 @@ class _HomescreenState extends State<Homescreen> {
   }
 
   Future _pickCropAndPredictImage(BuildContext context) async {
-    final ImagePicker _picker = ImagePicker();
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-
-    if (image != null) {
-      CroppedFile? croppedFile = await ImageCropper().cropImage(
-        sourcePath: image.path,
-        compressQuality: 100,
-        compressFormat: ImageCompressFormat.jpg,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Crop Image',
-            toolbarColor: primaryColor,
-            toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.original,
-            lockAspectRatio: false,
-            activeControlsWidgetColor: primaryColor,
+    // Show a full-screen dialog with options
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: pureWhite,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
           ),
-          IOSUiSettings(
-            title: 'Crop Image',
-          ),
-        ],
-      );
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Select Image Source",
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: primaryColor,
+                ),
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildImageSourceOption(
+                    context: context,
+                    icon: Icons.camera_alt,
+                    label: "Camera",
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final XFile? image =
+                          await _picker.pickImage(source: ImageSource.camera);
+                      if (image != null) {
+                        _cropAndProcessImage(image.path, context);
+                      }
+                    },
+                  ),
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      context: context,
+                      icon: Icons.photo_library_rounded,
+                      title: "Gallery",
+                      subtitle: "Select from photos",
+                      onTap: () async {
+                        try {
+                          // Get the status bar height to adjust UI positioning
+                          final statusBarHeight =
+                              MediaQuery.of(context).padding.top;
 
-      if (croppedFile != null) {
-        await processAndPredictImage(croppedFile.path, context);
-      }
+                          // Use ImagePicker directly
+                          final XFile? image = await _picker.pickImage(
+                            source: ImageSource.gallery,
+                            // Optional parameters to improve image quality
+                            imageQuality: 100,
+                            maxWidth: 4000,
+                            maxHeight: 4000,
+                          );
+
+                          if (image != null) {
+                            // Crop the image with adjusted UI settings
+                            CroppedFile? croppedFile =
+                                await ImageCropper().cropImage(
+                              sourcePath: image.path,
+                              compressQuality: 100,
+                              compressFormat: ImageCompressFormat.jpg,
+                              uiSettings: [
+                                AndroidUiSettings(
+                                  toolbarTitle: 'Crop Image',
+                                  toolbarColor: primaryColor,
+                                  toolbarWidgetColor: Colors.white,
+                                  initAspectRatio:
+                                      CropAspectRatioPreset.original,
+                                  lockAspectRatio: false,
+                                  activeControlsWidgetColor: primaryColor,
+                                  statusBarColor: primaryColor,
+                                  hideBottomControls: false,
+                                  // Add extra padding to account for status bar
+                                  dimmedLayerColor:
+                                      Colors.black.withOpacity(0.6),
+                                  // Adjust toolbar height to avoid status bar overlap
+                                ),
+                                IOSUiSettings(
+                                  title: 'Crop Image',
+                                  doneButtonTitle: 'Done',
+                                  cancelButtonTitle: 'Cancel',
+                                  hidesNavigationBar: false,
+                                  aspectRatioPickerButtonHidden: false,
+                                ),
+                              ],
+                            );
+
+                            if (croppedFile != null) {
+                              await processAndPredictImage(
+                                  croppedFile.path, context);
+                            }
+                          }
+                        } catch (exception) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  'Error selecting or processing image: $exception'),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _cropAndProcessImage(
+      String imagePath, BuildContext context) async {
+    CroppedFile? croppedFile = await ImageCropper().cropImage(
+      sourcePath: imagePath,
+      compressQuality: 100,
+      compressFormat: ImageCompressFormat.jpg,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop Image',
+          toolbarColor: primaryColor,
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: false,
+          activeControlsWidgetColor: primaryColor,
+          statusBarColor: primaryColor,
+          hideBottomControls: false,
+        ),
+        IOSUiSettings(
+          title: 'Crop Image',
+          doneButtonTitle: 'Done',
+          cancelButtonTitle: 'Cancel',
+          hidesNavigationBar: false,
+          aspectRatioPickerButtonHidden: false,
+        ),
+      ],
+    );
+
+    if (croppedFile != null) {
+      await processAndPredictImage(croppedFile.path, context);
     }
   }
 
@@ -397,404 +523,591 @@ class _HomescreenState extends State<Homescreen> {
         child: Stack(
           children: [
             SingleChildScrollView(
-              child: Container(
-                child: Column(
-                  children: [
-                    Container(
-                      clipBehavior: Clip.antiAlias,
-                      width: size.width,
-                      height: 210,
-                      decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                              colors: [bgTint, primaryColorDark],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              stops: [0.0, 0.90]),
-                          borderRadius: BorderRadius.only(
-                              bottomRight: Radius.circular(40))),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Opacity(
-                              opacity: 0.3,
-                              child: Image.asset(
-                                kauthLogoFull,
-                                height: 300,
-                                width: 300,
+              child: Column(
+                children: [
+                  Container(
+                    clipBehavior: Clip.antiAlias,
+                    width: size.width,
+                    height: 230,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [bgTint, primaryColorDark],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: [0.0, 0.90],
+                      ),
+                      borderRadius: BorderRadius.only(
+                        bottomRight: Radius.circular(40),
+                        bottomLeft: Radius.circular(40),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryColor.withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          right: -50,
+                          top: -50,
+                          child: Container(
+                            height: 200,
+                            width: 200,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: -30,
+                          bottom: -50,
+                          child: Container(
+                            height: 150,
+                            width: 150,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 20,
+                          top: 50,
+                          child: Opacity(
+                            opacity: 0.3,
+                            child: Image.asset(
+                              kauthLogoFull,
+                              height: 200,
+                              width: 200,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 0,
+                          bottom: 0,
+                          child: Container(
+                            height: 200,
+                            width: size.width,
+                            padding: EdgeInsets.fromLTRB(30, 0, 30, 40),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Welcome to",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w400,
+                                    color: pureWhite.withOpacity(0.9),
+                                  ),
+                                ),
+                                Text(
+                                  "KAuth",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 50,
+                                    fontWeight: FontWeight.w700,
+                                    color: pureWhite,
+                                    height: 1.1,
+                                  ),
+                                ),
+                                SizedBox(height: 5),
+                                Text(
+                                  "Banknote Authentication System",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    color: pureWhite.withOpacity(0.8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.fromLTRB(20, 25, 20, 50),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Quick Actions",
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: primaryColor,
+                          ),
+                        ),
+                        SizedBox(height: 15),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildQuickActionCard(
+                                context: context,
+                                icon: Icons.camera_alt_rounded,
+                                title: "Scan Banknote",
+                                subtitle: "Use camera to verify",
+                                onTap: () async {
+                                  try {
+                                    List<String> pictures =
+                                        await CunningDocumentScanner
+                                                .getPictures(
+                                                    noOfPages: 1,
+                                                    isGalleryImportAllowed:
+                                                        true) ??
+                                            [];
+                                    if (pictures.isNotEmpty) {
+                                      await processAndPredictImage(
+                                          pictures[0], context);
+                                    }
+                                  } catch (exception) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            'Error capturing or processing image: $exception'),
+                                      ),
+                                    );
+                                  }
+                                },
                               ),
                             ),
-                          ),
-                          Positioned(
-                              left: 0,
-                              bottom: 0,
-                              child: Container(
-                                height: 200,
-                                width: size.width,
-                                padding: EdgeInsets.fromLTRB(50, 0, 50, 40),
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.bottomLeft,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Welcome to",
-                                        style: GoogleFonts.poppins(
-                                            fontSize: 56,
-                                            fontWeight: FontWeight.w600,
-                                            color: pureWhite,
-                                            height: 1.1),
+                            SizedBox(width: 15),
+                            Expanded(
+                              child: _buildQuickActionCard(
+                                context: context,
+                                icon: Icons.photo_library_rounded,
+                                title: "Gallery",
+                                subtitle: "Select from photos",
+                                onTap: () async {
+                                  try {
+                                    // Get the status bar height to adjust UI positioning
+                                    final statusBarHeight =
+                                        MediaQuery.of(context).padding.top;
+
+                                    // Use ImagePicker directly
+                                    final XFile? image =
+                                        await _picker.pickImage(
+                                      source: ImageSource.gallery,
+                                      // Optional parameters to improve image quality
+                                      imageQuality: 100,
+                                      maxWidth: 4000,
+                                      maxHeight: 4000,
+                                    );
+
+                                    if (image != null) {
+                                      // Crop the image with adjusted UI settings
+                                      CroppedFile? croppedFile =
+                                          await ImageCropper().cropImage(
+                                        sourcePath: image.path,
+                                        compressQuality: 100,
+                                        compressFormat: ImageCompressFormat.jpg,
+                                        uiSettings: [
+                                          AndroidUiSettings(
+                                            toolbarTitle: 'Crop Image',
+                                            toolbarColor: primaryColor,
+                                            toolbarWidgetColor: Colors.white,
+                                            initAspectRatio:
+                                                CropAspectRatioPreset.original,
+                                            lockAspectRatio: false,
+                                            activeControlsWidgetColor:
+                                                primaryColor,
+                                            statusBarColor: primaryColor,
+                                            hideBottomControls: false,
+                                            // Add extra padding to account for status bar
+                                            dimmedLayerColor:
+                                                Colors.black.withOpacity(0.6),
+                                            // Adjust toolbar height to avoid status bar overlap
+                                          ),
+                                          IOSUiSettings(
+                                            title: 'Crop Image',
+                                            doneButtonTitle: 'Done',
+                                            cancelButtonTitle: 'Cancel',
+                                            hidesNavigationBar: false,
+                                            aspectRatioPickerButtonHidden:
+                                                false,
+                                          ),
+                                        ],
+                                      );
+
+                                      if (croppedFile != null) {
+                                        await processAndPredictImage(
+                                            croppedFile.path, context);
+                                      }
+                                    }
+                                  } catch (exception) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            'Error selecting or processing image: $exception'),
                                       ),
-                                      Text(
-                                        "KAuth",
-                                        style: GoogleFonts.poppins(
-                                            fontSize: 56,
-                                            fontWeight: FontWeight.w600,
-                                            color: pureWhite,
-                                            height: 1.1),
-                                      )
-                                    ],
-                                  ),
-                                ),
-                              )),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.fromLTRB(30, 10, 30, 50),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            height: 15,
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 25),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Recent Transactions",
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: primaryColor,
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () {
+                                Get.to(
+                                  () => TransactionScreen(),
+                                  transition: Transition.fadeIn,
+                                  duration: Duration(milliseconds: 200),
+                                );
+                              },
+                              icon: Icon(Icons.history, size: 18),
+                              label: Text(
+                                "View All",
+                                style: GoogleFonts.poppins(fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: pureWhite,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: primaryColor.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: Offset(0, 5),
+                              ),
+                            ],
                           ),
-                          Container(
-                            decoration: BoxDecoration(
-                                color: bgWhite,
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
-                                  BoxShadow(
-                                      blurRadius: 15,
-                                      color: primaryColor.withOpacity(0.3),
-                                      offset: Offset(2, 2))
-                                ]),
-                            padding: EdgeInsets.all(20),
-                            child: Column(
-                              children: [
-                                Container(
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                          padding: EdgeInsets.all(15),
+                          child: Obx(
+                            () => ApplicationController
+                                        .instance.prevTrans.length >
+                                    0
+                                ? Column(
                                     children: [
-                                      Expanded(
-                                        child: Text(
-                                          "Result History",
-                                          overflow: TextOverflow.ellipsis,
-                                          style: GoogleFonts.poppins(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16),
-                                        ),
-                                      ),
-                                      TextButton(
-                                          onPressed: () {
-                                            Get.to(() => TransactionScreen(),
-                                                transition: Transition.downToUp,
-                                                duration:
-                                                    Duration(milliseconds: 500),
-                                                curve: Curves.easeInOut);
-                                          },
-                                          child: Text(
-                                            "See all",
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.poppins(),
-                                          ))
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 1,
-                                ),
-                                Obx(
-                                  () => ApplicationController
-                                              .instance.prevTrans.length >
-                                          0
-                                      ? Column(children: [
-                                          ...[
-                                            for (int i = 0;
-                                                i <
-                                                    (ApplicationController
+                                      for (int i = 0;
+                                          i <
+                                              (ApplicationController.instance
+                                                          .prevTrans.length >=
+                                                      3
+                                                  ? 3
+                                                  : ApplicationController
+                                                      .instance
+                                                      .prevTrans
+                                                      .length);
+                                          i++)
+                                        Container(
+                                          margin: EdgeInsets.only(
+                                              bottom: i < 2 ? 10 : 0),
+                                          child: TransactionCard(
+                                            index: i,
+                                            transNum: int.parse(
+                                                ApplicationController
+                                                    .instance
+                                                    .prevTrans[
+                                                        ApplicationController
                                                                 .instance
                                                                 .prevTrans
-                                                                .length >=
-                                                            3
-                                                        ? 3
-                                                        : ApplicationController
-                                                            .instance
-                                                            .prevTrans
-                                                            .length);
-                                                i++)
-                                              Container(
-                                                margin:
-                                                    EdgeInsets.only(bottom: 1),
-                                                child: TransactionCard(
-                                                  index: i,
-                                                  transNum: int.parse(
-                                                      ApplicationController
-                                                          .instance
-                                                          .prevTrans[
-                                                              ApplicationController
-                                                                      .instance
-                                                                      .prevTrans
-                                                                      .length -
-                                                                  1 -
-                                                                  i][0]
-                                                          .toString()),
-                                                  date: ApplicationController
-                                                      .instance
-                                                      .prevTrans[
-                                                          ApplicationController
-                                                                  .instance
-                                                                  .prevTrans
-                                                                  .length -
-                                                              1 -
-                                                              i][1]
-                                                      .toString(),
-                                                  isReal: ApplicationController
-                                                              .instance
-                                                              .prevTrans[ApplicationController
-                                                                      .instance
-                                                                      .prevTrans
-                                                                      .length -
-                                                                  1 -
-                                                                  i][2]
-                                                              .toString()
-                                                              .toLowerCase() ==
-                                                          "true"
-                                                      ? true
-                                                      : false,
-                                                ),
-                                              ),
-                                          ]
-                                        ])
-                                      : Container(
-                                          margin: EdgeInsets.symmetric(
-                                              vertical: 10),
-                                          width: double.infinity,
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            "No previous transactions found.",
-                                            style: GoogleFonts.poppins(
-                                                fontSize: 14,
-                                                color: disabledGrey),
-                                          )),
-                                ),
-                              ],
-                            ),
+                                                                .length -
+                                                            1 -
+                                                            i][0]
+                                                    .toString()),
+                                            date: ApplicationController
+                                                .instance
+                                                .prevTrans[ApplicationController
+                                                        .instance
+                                                        .prevTrans
+                                                        .length -
+                                                    1 -
+                                                    i][1]
+                                                .toString(),
+                                            isReal: ApplicationController
+                                                        .instance
+                                                        .prevTrans[
+                                                            ApplicationController
+                                                                    .instance
+                                                                    .prevTrans
+                                                                    .length -
+                                                                1 -
+                                                                i][2]
+                                                        .toString()
+                                                        .toLowerCase() ==
+                                                    "true"
+                                                ? true
+                                                : false,
+                                          ),
+                                        ),
+                                    ],
+                                  )
+                                : Container(
+                                    padding: EdgeInsets.symmetric(vertical: 20),
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.history_rounded,
+                                          size: 50,
+                                          color: disabledGrey.withOpacity(0.5),
+                                        ),
+                                        SizedBox(height: 10),
+                                        Text(
+                                          "No transactions yet",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            color: disabledGrey,
+                                          ),
+                                        ),
+                                        SizedBox(height: 5),
+                                        Text(
+                                          "Scan a banknote to get started",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            color:
+                                                disabledGrey.withOpacity(0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                           ),
-                          Container(
-                            margin: EdgeInsets.only(top: 20),
-                            height: 190,
-                            decoration: BoxDecoration(
-                                color: primaryColor,
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
-                                  BoxShadow(
-                                      blurRadius: 15,
-                                      color: primaryColor.withOpacity(0.3),
-                                      offset: Offset(2, 2))
-                                ]),
-                            child: Stack(
-                              children: [
-                                Positioned(
-                                    top: 0,
-                                    left: 0,
-                                    child: Container(
-                                      height: 190,
-                                      width: size.width - 20,
-                                      alignment: Alignment.bottomRight,
-                                      child: Container(
-                                        height: 190,
-                                        width: size.width / 2,
-                                        child: Image.asset(knowmore),
-                                        alignment: Alignment.bottomRight,
+                        ),
+                        SizedBox(height: 25),
+                        Container(
+                          height: 185,
+                          width: MediaQuery.of(context).size.width - 40,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [primaryColor, primaryColorDark],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: primaryColor.withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          clipBehavior: Clip.hardEdge,
+                          child: Stack(
+                            children: [
+                              Positioned(
+                                bottom: -8,
+                                right: -8,
+                                child: SizedBox(
+                                  height: 138,
+                                  child: Image.asset(
+                                    knowmore,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.fromLTRB(20, 18, 20, 18),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "Learn More",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w600,
+                                        color: pureWhite,
                                       ),
-                                      clipBehavior: Clip.antiAlias,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Container(
+                                      width: MediaQuery.of(context).size.width *
+                                          0.6,
+                                      child: Text(
+                                        "Discover more about Philippine banknotes and security features",
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          color: pureWhite.withOpacity(0.9),
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    )),
-                                Positioned(
-                                    top: 0,
-                                    left: 0,
-                                    child: Container(
-                                      height: 190,
-                                      width: size.width - 60,
-                                      alignment: Alignment.centerLeft,
-                                      child: Container(
-                                        height: 190,
-                                        width: size.width * 0.6,
-                                        padding:
-                                            EdgeInsets.fromLTRB(20, 20, 0, 20),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              "Would you like to know more about the 1000 Philippine Banknotes?",
-                                              style: GoogleFonts.poppins(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: pureWhite),
-                                            ),
-                                            SizedBox(
-                                              height: 12,
-                                            ),
-                                            MaterialButtonIcon(
-                                              onTap: () {
-                                                {
-                                                  Get.to(
-                                                      () => LearnmoreScreen(),
-                                                      transition:
-                                                          Transition.downToUp,
-                                                      duration: Duration(
-                                                          milliseconds: 500),
-                                                      curve: Curves.easeInOut);
-                                                }
-                                              },
-                                              withIcon: false,
-                                              withText: true,
-                                              text: "Learn more!",
-                                              fontColor: primaryColor,
-                                              buttonColor: pureWhite,
-                                              height: 30,
-                                              width: 130,
-                                            )
-                                          ],
+                                    ),
+                                    SizedBox(height: 12),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Get.to(
+                                          () => LearnmoreScreen(),
+                                          transition: Transition.fadeIn,
+                                          duration: Duration(milliseconds: 200),
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: pureWhite,
+                                        foregroundColor: primaryColor,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(30),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 20, vertical: 8),
+                                        minimumSize: Size(0, 36),
+                                      ),
+                                      child: Text(
+                                        "Explore",
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      clipBehavior: Clip.antiAlias,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                    ))
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 80), // Space for bottom navigation
+                      ],
                     ),
-                    SizedBox(
-                      height: 60,
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              bottom: 20,
+              left: 0,
+              right: 0,
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 20),
+                height: 70,
+                decoration: BoxDecoration(
+                  color: pureWhite,
+                  borderRadius: BorderRadius.circular(35),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryColor.withOpacity(0.2),
+                      blurRadius: 15,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildNavItem(
+                      icon: Icons.home_rounded,
+                      label: "Home",
+                      isActive: true,
+                      onTap: () {},
+                    ),
+                    _buildNavItem(
+                      icon: Icons.history_rounded,
+                      label: "History",
+                      isActive: false,
+                      onTap: () {
+                        Get.to(
+                          () => TransactionScreen(),
+                          transition: Transition.fadeIn,
+                          duration: Duration(milliseconds: 200),
+                        );
+                      },
+                    ),
+                    SizedBox(width: 60), // Space for center button
+                    _buildNavItem(
+                      icon: Icons.info_outline_rounded,
+                      label: "Learn",
+                      isActive: false,
+                      onTap: () {
+                        Get.to(
+                          () => LearnmoreScreen(),
+                          transition: Transition.fadeIn,
+                          duration: Duration(milliseconds: 200),
+                        );
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.help_outline_rounded,
+                      label: "Help",
+                      isActive: false,
+                      onTap: () {
+                        Get.to(
+                          () => OnboardingScreen(),
+                          transition: Transition.fadeIn,
+                          duration: Duration(milliseconds: 200),
+                        );
+                      },
                     ),
                   ],
                 ),
               ),
             ),
             Positioned(
-              bottom: 20,
-              child: Container(
-                width: size.width,
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 240,
-                        height: 70,
-                        decoration: BoxDecoration(
-                            color: pureWhite,
-                            borderRadius: BorderRadius.circular(40),
-                            boxShadow: [
-                              BoxShadow(
-                                  blurRadius: 15,
-                                  color: primaryColorDark.withOpacity(0.2))
-                            ]),
-                        child: Row(
-                          children: [
-                            Container(
-                              alignment: Alignment.center,
-                              height: 70,
-                              width: 80,
-                              padding: EdgeInsets.only(left: 7.5),
-                              child: GestureDetector(
-                                onTap: () {
-                                  {
-                                    Get.to(() => OnboardingScreen(),
-                                        transition: Transition.downToUp,
-                                        duration: Duration(milliseconds: 500),
-                                        curve: Curves.easeInOut);
-                                  }
-                                },
-                                child: Icon(
-                                  Icons.question_mark_rounded,
-                                  size: 35,
-                                  color: primaryColor,
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              height: 70,
-                              width: 80,
-                            ),
-                            Container(
-                              alignment: Alignment.center,
-                              height: 70,
-                              width: 80,
-                              padding: EdgeInsets.only(right: 7.5),
-                              child: GestureDetector(
-                                onTap: () async {
-                                  await _pickCropAndPredictImage(context);
-                                },
-                                child: Icon(
-                                  Icons.photo_library_rounded,
-                                  size: 35,
-                                  color: primaryColor,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+              bottom: 35,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  height: 70,
+                  width: 70,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [primaryColor, primaryColorDark],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryColor.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: Offset(0, 5),
                       ),
-                      MaterialButtonIcon(
-                        onTap: () async {
-                          try {
-                            List<String> pictures =
-                                await CunningDocumentScanner.getPictures(
-                                        noOfPages: 1,
-                                        isGalleryImportAllowed: true) ??
-                                    [];
-                            if (pictures.isNotEmpty) {
-                              await processAndPredictImage(
-                                  pictures[0], context);
-                            }
-                          } catch (exception) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    'Error capturing or processing image: $exception'),
-                              ),
-                            );
-                          }
-                        },
-                        withIcon: true,
-                        withText: false,
-                        height: 80,
-                        width: 80,
-                        icon: Icons.camera_alt,
-                        iconSize: 40,
-                        iconColor: pureWhite,
-                      )
                     ],
+                  ),
+                  child: IconButton(
+                    onPressed: () async {
+                      try {
+                        List<String> pictures =
+                            await CunningDocumentScanner.getPictures(
+                                    noOfPages: 1,
+                                    isGalleryImportAllowed: true) ??
+                                [];
+                        if (pictures.isNotEmpty) {
+                          await processAndPredictImage(pictures[0], context);
+                        }
+                      } catch (exception) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Error capturing or processing image: $exception'),
+                          ),
+                        );
+                      }
+                    },
+                    icon: Icon(
+                      Icons.camera_alt_rounded,
+                      color: pureWhite,
+                      size: 30,
+                    ),
                   ),
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -813,12 +1126,13 @@ class TransactionCard extends StatefulWidget {
   final int transNum;
   final String date;
   final bool isReal;
-  const TransactionCard(
-      {super.key,
-      required this.index,
-      required this.transNum,
-      required this.date,
-      required this.isReal});
+  const TransactionCard({
+    super.key,
+    required this.index,
+    required this.transNum,
+    required this.date,
+    required this.isReal,
+  });
 
   @override
   State<TransactionCard> createState() => _TransactionCardState();
@@ -829,13 +1143,25 @@ class _TransactionCardState extends State<TransactionCard> {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
+    // Format the date for display
+    String formattedDate =
+        "${widget.date.substring(0, 4)}-${widget.date.substring(4, 6)}-${widget.date.substring(6, 8)} ${widget.date.substring(8, 10)}:${widget.date.substring(10, 12)}:${widget.date.substring(12, 14)}";
+
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.isReal
+            ? genuineGreen.withOpacity(0.05)
+            : fakeRed.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: widget.isReal
+              ? genuineGreen.withOpacity(0.3)
+              : fakeRed.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
       child: Material(
-        borderRadius: BorderRadius.circular(30),
-        color: bgWhite,
-        elevation: isHovered ? 10 : 0,
-        shadowColor: primaryColorLight.withOpacity(0.2),
+        color: Colors.transparent,
         child: InkWell(
           onHover: (hover) {
             setState(() {
@@ -856,90 +1182,132 @@ class _TransactionCardState extends State<TransactionCard> {
               isGenuine: widget.isReal,
               transNum: widget.transNum,
               image: Image.file(compressedImage), // Using compressed image
-              date:
-                  "${widget.date.substring(0, 4)}-${widget.date.substring(4, 6)}-${widget.date.substring(6, 8)} ${widget.date.substring(8, 10)}:${widget.date.substring(10, 12)}:${widget.date.substring(12, 14)}",
+              date: formattedDate,
             );
           },
-          borderRadius: BorderRadius.circular(20),
-          splashColor: primaryColor.withOpacity(0.2),
-          highlightColor: primaryColor.withOpacity(0.1),
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(20, 10, 10, 10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-            ),
+          borderRadius: BorderRadius.circular(15),
+          splashColor: widget.isReal
+              ? genuineGreen.withOpacity(0.1)
+              : fakeRed.withOpacity(0.1),
+          highlightColor: widget.isReal
+              ? genuineGreen.withOpacity(0.05)
+              : fakeRed.withOpacity(0.05),
+          child: Padding(
+            padding: EdgeInsets.all(12),
             child: Row(
               children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: widget.isReal
+                        ? genuineGreen.withOpacity(0.1)
+                        : fakeRed.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    widget.isReal ? Icons.check_circle : Icons.cancel,
+                    color: widget.isReal ? genuineGreen : fakeRed,
+                    size: 24,
+                  ),
+                ),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Transaction #${widget.transNum.toString()}",
-                        textAlign: TextAlign.start,
-                        overflow: TextOverflow.ellipsis,
+                        "Transaction #${widget.transNum}",
                         style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w600,
                           fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: primaryColor,
                         ),
                       ),
+                      SizedBox(height: 2),
                       Text(
-                        "${widget.date.substring(0, 4)}-${widget.date.substring(4, 6)}-${widget.date.substring(6, 8)} ${widget.date.substring(8, 10)}:${widget.date.substring(10, 12)}:${widget.date.substring(12, 14)}",
-                        textAlign: TextAlign.start,
-                        overflow: TextOverflow.ellipsis,
+                        formattedDate,
                         style: GoogleFonts.poppins(
+                          fontSize: 12,
                           color: disabledGrey,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 14,
                         ),
                       ),
                     ],
-                    mainAxisSize: MainAxisSize.min,
                   ),
                 ),
                 Container(
-                  width: 80,
-                  height: 50,
-                  alignment: Alignment.center,
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: widget.isReal ? genuineGreen : fakeRed,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   child: Text(
                     widget.isReal ? "Real" : "Fake",
-                    textAlign: TextAlign.start,
-                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.poppins(
-                      color: widget.isReal ? genuineGreen : fakeRed,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      fontSize: 20,
+                      color: pureWhite,
                     ),
                   ),
                 ),
+                SizedBox(width: 8),
                 IconButton(
-                  icon: Icon(Icons.delete),
-                  color: Colors.red,
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: Colors.red.shade300,
+                    size: 22,
+                  ),
                   onPressed: () {
-                    // Add delete confirmation dialog logic
                     showDialog(
                       context: context,
                       builder: (BuildContext context) {
                         return AlertDialog(
-                          title: Text("Delete Transaction"),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          title: Text(
+                            "Delete Transaction",
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              color: primaryColor,
+                            ),
+                          ),
                           content: Text(
-                              "Are you sure you want to delete this transaction?"),
+                            "Are you sure you want to delete this transaction?",
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: darkGrey,
+                            ),
+                          ),
                           actions: [
                             TextButton(
-                              child: Text("Cancel"),
+                              child: Text(
+                                "Cancel",
+                                style: GoogleFonts.poppins(
+                                  color: disabledGrey,
+                                ),
+                              ),
                               onPressed: () {
-                                Navigator.of(context).pop(); // Close the dialog
+                                Navigator.of(context).pop();
                               },
                             ),
-                            TextButton(
-                              child: Text("Confirm"),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: pureWhite,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              child: Text(
+                                "Delete",
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               onPressed: () {
-                                // If confirmed, delete the transaction
                                 ApplicationController.instance
                                     .deleteTransaction(widget.transNum);
-
-                                // Close the dialog
                                 Navigator.of(context).pop();
                               },
                             ),
@@ -1047,4 +1415,140 @@ class _SelectButtonState extends State<SelectButton> {
       ),
     );
   }
+}
+
+Widget _buildQuickActionCard({
+  required BuildContext context,
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required VoidCallback onTap,
+}) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(20),
+    child: Container(
+      padding: EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: pureWhite,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(
+              icon,
+              color: primaryColor,
+              size: 30,
+            ),
+          ),
+          SizedBox(height: 15),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: primaryColor,
+            ),
+          ),
+          SizedBox(height: 5),
+          Text(
+            subtitle,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: disabledGrey,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildNavItem({
+  required IconData icon,
+  required String label,
+  required bool isActive,
+  required VoidCallback onTap,
+}) {
+  return InkWell(
+    onTap: onTap,
+    child: Container(
+      padding: EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+      decoration: BoxDecoration(
+        color: isActive ? primaryColor.withOpacity(0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isActive ? primaryColor : disabledGrey,
+            size: 24,
+          ),
+          SizedBox(height: 4),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              color: isActive ? primaryColor : disabledGrey,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildImageSourceOption({
+  required BuildContext context,
+  required IconData icon,
+  required String label,
+  required VoidCallback onTap,
+}) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(15),
+    child: Container(
+      padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+      decoration: BoxDecoration(
+        color: primaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: primaryColor,
+            size: 40,
+          ),
+          SizedBox(height: 10),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: primaryColor,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

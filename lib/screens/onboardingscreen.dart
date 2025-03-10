@@ -49,6 +49,24 @@ class OnboardingScreen extends StatelessWidget {
             ],
           ),
 
+          /// App Logo at the top
+          Positioned(
+            top: 50,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Column(
+                children: [
+                  SizedBox(height: 20),
+                  Image.asset(
+                    kauthLogoFull,
+                    height: 150,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           /// Skip Button
           Obx(() => controller.currentPageIndex.value == 3
               ? Container()
@@ -93,16 +111,23 @@ class OnboardingNextButton extends StatelessWidget {
               iconColor: pureWhite,
               minimumSize:
                   OnboardingController.instance.currentPageIndex.value == 3
-                      ? Size(120, 56)
+                      ? Size(150, 56)
                       : Size(56, 56),
             ),
             child: OnboardingController.instance.currentPageIndex.value == 3
-                ? Text("LET'S GO!",
-                    style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: pureWhite))
-                : Icon(Icons.keyboard_arrow_right_rounded),
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text("LET'S GO!",
+                          style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: pureWhite)),
+                      SizedBox(width: 5),
+                      Icon(Icons.arrow_forward_rounded, color: pureWhite),
+                    ],
+                  )
+                : Icon(Icons.keyboard_arrow_right_rounded, size: 30),
           ),
         ));
   }
@@ -164,7 +189,7 @@ class OnboardingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(50),
+      padding: const EdgeInsets.fromLTRB(40, 100, 40, 40),
       child: Column(
         mainAxisSize: MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -172,17 +197,23 @@ class OnboardingPage extends StatelessWidget {
           Text(
             title,
             style: GoogleFonts.poppins(
-                fontSize: 28, fontWeight: FontWeight.bold, height: 1.1),
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                height: 1.1,
+                color: primaryColor),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
             subtitle,
-            style: GoogleFonts.poppins(fontSize: 16),
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: darkGrey,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 30),
-          Image(image: AssetImage(image))
+          Image(image: AssetImage(image)),
         ],
       ),
     );
@@ -204,27 +235,36 @@ class GuidePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(40),
+      padding: const EdgeInsets.fromLTRB(40, 100, 40, 40),
       child: Column(
         mainAxisSize: MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             title,
-            style:
-                GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: primaryColor,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
             subtitle,
-            style: GoogleFonts.poppins(fontSize: 16),
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: darkGrey,
+            ),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 30),
           Image(
-              width: size.width * 0.8,
-              height: size.width * 0.8,
-              image: AssetImage(image)),
+            width: size.width * 0.8,
+            height: size.width * 0.8,
+            image: AssetImage(image),
+            fit: BoxFit.contain,
+          ),
         ],
       ),
     );
